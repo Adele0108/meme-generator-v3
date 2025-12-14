@@ -15,12 +15,12 @@
 4. 浏览器会自动打开网页
 
 方法 2：使用 Python（如果已安装 Python）
-1. 在 Meme-generator-v2 文件夹中打开命令行/终端
+1. 在 meme-generator-v3 文件夹中打开命令行/终端
 2. 运行命令：python -m http.server 8000
 3. 在浏览器访问：http://localhost:8000/meme-generator.html
 
 方法 3：使用 Node.js（如果已安装 Node.js）
-1. 在 Meme-generator-v2 文件夹中打开命令行/终端
+1. 在 meme-generator-v3 文件夹中打开命令行/终端
 2. 运行命令：npx http-server
 3. 按照提示在浏览器访问显示的地址
 
@@ -30,4 +30,5 @@
 注意：
 - 使用 HTTP 服务器运行后，所有功能都会正常工作
 - 如果使用 file:// 协议，可以右键点击图片选择"另存为"来保存（图片已包含文字）
+
 
