@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>本土化Meme表情包生成器</title>
+    <link rel="stylesheet" href="meme-generator.css">
+    <!-- GIF 处理库 -->
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gifuct-js@2.1.5/dist/gifuct.min.js"></script>
+    <script>
+        // 确保库加载完成
+        window.addEventListener('load', function() {
+            if (typeof GIF === 'undefined') {
+                console.warn('GIF.js 未加载，GIF 功能可能不可用');
+            }
+            if (typeof parseGIF === 'undefined' && typeof gifuct === 'undefined') {
+                console.warn('gifuct-js 未加载，GIF 解析功能可能不可用');
+            }
+        });
+    </script>
+</head>
+<body>
+    <header>
+        <h1>本土化Meme表情包生成器</h1>
+        <p>告别千篇一律的文字，创造有"灵魂"的中文表情包</p>
+        <button id="globalVoiceBtn" class="global-voice-btn" title="点击启动全局语音控制，可通过语音控制整个表情包生成流程">
+            🎤 启动全局语音控制
+        </button>
+    </header>
+
+    <main>
+        <section class="generator-container">
+            <div class="upload-section">
+                <h2>上传图片</h2>
+                <div class="image-upload-area" id="uploadArea">
+                    <p>点击或拖拽图片到此区域上传</p>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+                <!-- 图片裁剪功能 -->
+                <div class="crop-section" id="cropSection" style="display: none;">
+                    <h3>图片裁剪</h3>
+                    <div class="crop-container">
+                        <canvas id="cropCanvas"></canvas>
+                        <div class="crop-overlay" id="cropOverlay"></div>
+                    </div>
+                    <div class="crop-controls">
+                        <button id="cropBtn" class="crop-confirm-btn">确认裁剪</button>
+                        <button id="cancelCropBtn" class="crop-cancel-btn">取消裁剪</button>
+                    </div>
+                </div>
+                <div class="template-selector">
+                    <h3>或选择模板</h3>
+                    <div class="template-images">
+                        <img src="images/cat.jpg" alt="熊猫头" class="template-image" data-name="panda">
+                        <img src="images/dog.webp" alt="狗头" class="template-image dog-template" data-name="dog">
+                        <img src="images/cat2.jpg" alt="猫头" class="template-image" data-name="cat">
+                        <img src="images/bear.png" alt="黄油小熊" class="template-image" data-name="bear">
+                        <img src="images/nailong2.gif" alt="奶龙" class="template-image" data-name="nailong">
+                    </div>
+                </div>
+                <div class="image-search">
+                    <h3>或搜索网络图片</h3>
+                    <div class="search-tips">
+                        <!-- <p class="tip-text">💡 推荐：点击"在线搜索"可直接在页面下方显示结果并一键加载</p> -->
+                    </div>
+                    <div class="search-controls">
+                        <input type="text" id="imageSearchInput" placeholder="输入关键词搜索图片，如：cat、dog、meme">
+                        <button id="searchBtn" class="primary-search-btn">在线搜索</button>
+                        <button id="baiduSearchBtn" class="baidu-btn" title="在新窗口打开百度图片搜索">在百度搜索</button>
+                    </div>
+                    <div class="search-results" id="searchResults" style="display: none;">
+                        <div class="search-results-header">
+                            <span>搜索结果（点击图片即可加载）</span>
+                            <button id="closeSearchBtn" class="close-btn">×</button>
+                        </div>
+                        <div class="search-results-grid" id="searchResultsGrid"></div>
+                        <div class="search-loading" id="searchLoading" style="display: none;">
+                            <div class="loading-spinner"></div>
+                            <p>正在搜索图片...</p>
+                        </div>
+                        <div class="search-error" id="searchError" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <!-- AI 生成（通义千问 / 通义万相） - 放在左侧下方 -->
+                <div class="ai-generate-section">
+                    <h3>AI 生成图片 + 文案（通义 API）</h3>
+                    <div class="ai-controls">
+                        <div class="voice-input-wrapper">
+                            <textarea id="aiPromptInput" rows="3" placeholder="输入自然语言描述，如：一只戴墨镜的橘猫，开心地在电脑前摸鱼"></textarea>
+                            <button id="voiceInputBtn" class="voice-input-btn" title="语音输入">
+                                <span class="voice-icon">🎤</span>
+                                <span class="voice-text">语音</span>
+                            </button>
+                        </div>
+                        <div id="voiceStatus" class="voice-status" style="display: none;"></div>
+                        <input type="text" id="aiApiKeyInput" placeholder="填入通义 API Key（仅本地使用，不会上传）">
+                        <div class="ai-action-buttons">
+                            <button id="aiGenerateBtn" class="primary-search-btn">AI 生成</button>
+                            <label class="auto-generate-checkbox">
+                                <input type="checkbox" id="autoGenerateAfterVoice" checked>
+                                <span>语音识别后自动生成</span>
+                            </label>
+                        </div>
+                        <p class="ai-tip">提示：需在浏览器可直连 dashscope 域名，或自行配置后端代理以避免 CORS。</p>
+                        <p class="ai-tip">模型默认：通义万相（文本生成图片）+ 通义千问（生成文案）。</p>
+                        <p class="ai-tip">💡 语音功能：点击🎤按钮开始语音输入，需允许浏览器麦克风权限。</p>
+                        <div id="aiStatus" class="ai-status"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="meme-section">
+                <div class="section-header">
+                <h2>生成表情包</h2>
+                    <button id="toggleWorkspaceBtn" class="workspace-toggle-btn">进入编辑工作台</button>
+                </div>
+                
+                <!-- 普通模式 -->
+                <div class="normal-mode" id="normalMode">
+                    <div class="meme-display" id="memeDisplay">
+                        <canvas id="memeCanvas"></canvas>
+                        <img id="memeImage" src="" alt="表情包预览" style="display: none;">
+                        <img id="savePreview" class="mobile-save" src="" alt="长按保存" style="display: none;">
+                        <!-- 文字现在绘制在canvas上，这些overlay仅用于存储文字内容 -->
+                        <div class="text-overlay top" id="topText" style="display: none;"></div>
+                        <div class="text-overlay bottom" id="bottomText" style="display: none;"></div>
+                        <!-- 装饰元素也绘制在canvas上，隐藏这些 -->
+                        <div class="cute-decoration decoration-1" style="display: none;">★</div>
+                        <div class="cute-decoration decoration-2" style="display: none;">♥</div>
+                        <div class="cute-decoration decoration-3" style="display: none;">☆</div>
+                        <div class="cute-decoration decoration-4" style="display: none;">✦</div>
+                        <div class="cute-decoration decoration-5" style="display: none;">✧</div>
+                        <div class="cute-decoration decoration-6" style="display: none;">♥</div>
+                </div>
+                <div class="controls">
+                    <!-- 直接输入文案 -->
+                    <div class="text-input-section">
+                        <label for="textInput">直接输入文案：</label>
+                        <div class="voice-input-wrapper">
+                            <textarea id="textInput" rows="2" placeholder="直接输入你的文案，然后点击「应用文案」按钮"></textarea>
+                            <button id="voiceInputTextBtn" class="voice-input-btn" title="语音输入文案">
+                                <span class="voice-icon">🎤</span>
+                                <span class="voice-text">语音</span>
+                            </button>
+                        </div>
+                        <div id="voiceTextStatus" class="voice-status" style="display: none;"></div>
+                        <button id="applyTextBtn" class="primary-text-btn">应用文案</button>
+                    </div>
+                    
+                    <!-- 分隔线 -->
+                    <div class="divider">
+                        <span>或</span>
+                    </div>
+                    
+                    <!-- 关键词生成文案 -->
+                    <div class="keyword-section">
+                        <label for="emotionInput">通过关键词生成文案：</label>
+                        <input type="text" id="emotionInput" placeholder="输入情绪关键词，如：无语、狂喜、摸鱼">
+                        <div class="tag-chips" id="tagChips"></div>
+                        <div class="keyword-buttons">
+                            <button id="generateBtn">生成文案</button>
+                            <button id="quickGenerateBtn" class="secondary-btn">一键生成</button>
+                        </div>
+                    </div>
+                    
+                    <div class="use-type-row">
+                        <label for="useTypeSelect">用途：</label>
+                        <select id="useTypeSelect">
+                            <option value="original" selected>保留原始尺寸比例</option>
+                            <option value="meme">表情包（1:1）</option>
+                            <option value="poster">海报（1080x1440）</option>
+                            <option value="weixin">公众号首图（900x383）</option>
+                            <option value="promo">宣传图（1080x1350）</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="suggestions" id="suggestionsContainer">
+                    <h3>文案建议</h3>
+                    <ul id="suggestionsList"></ul>
+                </div>
+                <div class="selected-text">
+                    <p>选中的文案: <span id="selectedText"></span></p>
+                        <div class="text-edit-controls" id="textEditControls" style="display: none;">
+                            <input type="text" id="textEditInput" placeholder="编辑文案">
+                            <button id="saveEditBtn">保存</button>
+                            <button id="cancelEditBtn">取消</button>
+                        </div>
+                        <!-- 文字样式设置 -->
+                        <div class="text-style-controls">
+                            <div class="style-control-item">
+                                <label for="fontSizeSelect">字体大小：</label>
+                                <input type="range" id="fontSizeSelect" min="10" max="200" value="40" step="1">
+                                <span id="fontSizeValue">40</span>px
+                            </div>
+                            <div class="style-control-item">
+                                <label for="fontFamilySelect">字体：</label>
+                                <select id="fontFamilySelect">
+                                    <option value='"Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", Arial, sans-serif' selected>微软雅黑</option>
+                                    <option value='"SimHei", Arial, sans-serif'>黑体</option>
+                                    <option value='"SimSun", serif'>宋体</option>
+                                    <option value='"KaiTi", serif'>楷体</option>
+                                    <option value='Arial, sans-serif'>Arial</option>
+                                    <option value='"Comic Sans MS", cursive'>Comic Sans</option>
+                                </select>
+                            </div>
+                            <div class="style-control-item">
+                                <label for="textColorSelect">文字颜色：</label>
+                                <input type="color" id="textColorSelect" value="#FFFFFF">
+                            </div>
+                            <div class="style-control-item">
+                                <label for="strokeColorSelect">描边颜色：</label>
+                                <input type="color" id="strokeColorSelect" value="#000000">
+                            </div>
+                        </div>
+                        <div class="text-action-buttons">
+                            <button id="editTextBtn" class="edit-btn">编辑文案</button>
+                            <button id="cropImageBtn" class="crop-btn">裁剪图片</button>
+                    <button id="downloadBtn">下载表情包</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 可视化编辑工作台 -->
+                <div class="workspace-mode" id="workspaceMode" style="display: none;">
+                    <div class="workspace-container">
+                        <!-- 左侧：图层和工具 -->
+                        <div class="workspace-sidebar">
+                            <div class="workspace-panel">
+                                <h3>图层管理</h3>
+                                <ul class="layer-list" id="layerList"></ul>
+                                <button id="addTextLayerBtn" class="add-layer-btn">+ 添加文字层</button>
+                            </div>
+                            
+                            <div class="workspace-panel history-panel">
+                                <h3>历史版本</h3>
+                                <div class="history-list" id="historyList"></div>
+                                <button id="clearHistoryBtn" class="clear-btn">清空历史</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 中间：预览区 -->
+                        <div class="workspace-preview">
+                            <div class="preview-container" id="workspacePreview">
+                                <canvas id="workspaceCanvas"></canvas>
+                            </div>
+                            <div class="preview-controls">
+                                <button id="exportBtn" class="export-btn">导出当前版本</button>
+                                <button id="exitWorkspaceBtn" class="exit-btn">退出工作台</button>
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧：属性面板 -->
+                        <div class="workspace-properties">
+                            <h3>属性设置</h3>
+                            <div class="property-group" id="propertyPanel">
+                                <p class="no-selection">请选择一个图层进行编辑</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+    <footer>
+        <p>© 2025 本土化Meme表情包生成器 - 创造有"灵魂"的中文表情包</p>
+        <p style="font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.8;">
+            💡 提示：这是一个纯前端应用，可以部署到 GitHub Pages、Netlify 等平台供他人访问
+        </p>
+    </footer>
+
+    <script src="meme-generator.js"></script>
+</body>
+</html>

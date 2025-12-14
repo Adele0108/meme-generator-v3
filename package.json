@@ -1,0 +1,53 @@
+{
+  "name": "meme-generator-tests",
+  "version": "1.0.0",
+  "description": "AI自动生成测试用例 - 表情包生成器测试套件",
+  "main": "tests/e2e/meme-generator.test.js",
+  "scripts": {
+    "test": "jest",
+    "test:e2e": "jest tests/e2e",
+    "test:unit": "jest tests/unit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:generate": "node tests/utils/generate-test-cases.js",
+    "test:ci": "jest --ci --coverage --maxWorkers=2"
+  },
+  "keywords": [
+    "testing",
+    "puppeteer",
+    "e2e",
+    "automation",
+    "ai-testing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "puppeteer": "^21.6.0",
+    "jest-puppeteer": "^10.0.0",
+    "@jest/globals": "^29.7.0"
+  },
+  "jest": {
+    "preset": "jest-puppeteer",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "testTimeout": 30000,
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup/jest.setup.js"
+    ]
+  },
+  "jest-puppeteer": {
+    "launch": {
+      "headless": true,
+      "slowMo": 50,
+      "devtools": false
+    },
+    "server": {
+      "command": "python -m http.server 8000",
+      "port": 8000,
+      "launchTimeout": 30000
+    }
+  }
+}
+
